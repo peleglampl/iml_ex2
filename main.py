@@ -24,13 +24,12 @@ def load_data():
 
 
 # ==========================
-# 2. EVALUATE KNN MODELS
+# 5.1 Question 3:
 # ==========================
 def evaluate_knn_models(X_train, Y_train, X_test, Y_test):
     k_values = [1, 10, 100, 1000, 3000]
     metrics = ['l1', 'l2']
     results = np.zeros((len(k_values), len(metrics)))
-
     for j, metric in enumerate(metrics):
         for i, k in enumerate(k_values):
             model = KNNClassifier(k, distance_metric=metric)
@@ -39,13 +38,17 @@ def evaluate_knn_models(X_train, Y_train, X_test, Y_test):
             accuracy = np.mean(y_pred == Y_test)
             results[i, j] = accuracy
 
-            print(f"{metric}, k={k}  accuracy={accuracy:.4f}")
+    # print accuracy table:
+    print("\nAccuracy Table (rows = k, columns = metrics):")
+    print("           L1        L2")
+    for i, k in enumerate(k_values):
+        print(f"k={k:<6}  {results[i, 0]:.4f}    {results[i, 1]:.4f}")
 
     return results, k_values, metrics
 
 
 # ==========================
-# 3. PLOT BEST & WORST MODELS
+# PLOT BEST & WORST MODELS: Question 2
 # ==========================
 def plot_knn_best_worst(results, k_values, X_train, Y_train, X_test, Y_test):
     # Use L2 column
@@ -54,9 +57,9 @@ def plot_knn_best_worst(results, k_values, X_train, Y_train, X_test, Y_test):
 
     best_k = k_values[best_idx]
     worst_k = k_values[worst_idx]
-
-    print("\n--- Plotting Best and Worst Models ---")
+    # k max
     print(f"Best L2 model: k={best_k}")
+    # k min
     print(f"Worst L2 model: k={worst_k}")
 
     # BEST L2
@@ -76,7 +79,7 @@ def plot_knn_best_worst(results, k_values, X_train, Y_train, X_test, Y_test):
 
 
 # ==========================
-# 4. ANOMALY DETECTION
+# 5.3 ANOMALY DETECTION
 # ==========================
 def run_anomaly_detection(X_train):
     test_AD = np.genfromtxt('AD_test.csv', delimiter=',', skip_header=1)
@@ -104,7 +107,7 @@ def run_anomaly_detection(X_train):
     plt.xlabel("Longitude")
     plt.ylabel("Latitude")
     plt.legend()
-    # plt.show()
+    plt.show()
 
 
 # ==========================
@@ -123,7 +126,6 @@ def decision_trees():
 
     models = []
 
-    print("\n=== Training 24 Decision Trees ===")
     for d in max_depths:
         for leaf in max_leaf_nodes_list:
             tree = DecisionTreeClassifier(
@@ -136,8 +138,8 @@ def decision_trees():
             train_acc = np.mean(tree.predict(X_train) == Y_train)
             val_acc = np.mean(tree.predict(X_val) == Y_val)
             test_acc = np.mean(tree.predict(X_test) == Y_test)
-
-            print(f"depth={d}, leaf={leaf} | train={train_acc:.4f} val={val_acc:.4f} test={test_acc:.4f}")
+            # print table:
+            print(f"max_depth={d}, max_leaf_nodes={leaf} | training={train_acc:.4f} validation={val_acc:.4f} test={test_acc:.4f}")
 
             models.append({
                 "depth": d,
@@ -150,14 +152,13 @@ def decision_trees():
 
     return models
 
+
 ##################
 ### QUESTION 7 ###
 ##################
-
-
 def random_forest(X_train, Y_train, X_test, Y_test):
     max_depth = 6
-    random_forest = RandomForestClassifier(n_estimators=300, max_depth=max_depth, random_state=0)
+    random_forest = RandomForestClassifier(n_estimators=300, max_depth=max_depth, n_jobs=4)
     random_forest.fit(X_train, Y_train)
 
     # evaluate accuracy:
@@ -174,6 +175,18 @@ def plotting_decision_boundaries(model, X_test, Y_test, X_train, Y_train):
 
 
 
+#  Question 8:
+def train_XGBoost(X_train, Y_train, X_test, Y_test):
+    # loading XGBoost:
+    from xgboost import XGBClassifier
+    model = XGBClassifier(n_estimators=300, max_depth=6, learning_rate=0.1, n_jobs=4)
+    model.fit(X_train, Y_train)
+    # evaluate accuracy:
+    test_acc = np.mean(model.predict(X_test) == Y_test)
+    print("test accurate: ", test_acc)
+    helpers.plot_decision_boundaries(model, X_test, Y_test)
+
+
 def main():
     # Load data
     X_train, Y_train, X_test, Y_test = load_data()
@@ -182,27 +195,28 @@ def main():
     results, k_values, metrics = evaluate_knn_models(X_train, Y_train, X_test, Y_test)
 
     # Plot best/worst boundaries
-    # plot_knn_best_worst(results, k_values, X_train, Y_train, X_test, Y_test)
-    #
-    # # Run anomaly detection on AD_test.csv
-    # run_anomaly_detection(X_train)
+    plot_knn_best_worst(results, k_values, X_train, Y_train, X_test, Y_test)
 
-    # Train 24 decision trees
+    # 5.3: Run anomaly detection on AD_test.csv
+    run_anomaly_detection(X_train)
+
+    # Section 6: Train 24 decision trees
     decision_trees()
 
     # Ques 4:
-    # plotting_decision_boundaries((20, 1000), X_test, Y_test, X_train, Y_train)
+    plotting_decision_boundaries((20, 1000), X_test, Y_test, X_train, Y_train)
 
-    # # Ques 5:
-    # plotting_decision_boundaries((10, 50), X_test, Y_test, X_train, Y_train)
-    #
-    # # Ques 6:
-    # plotting_decision_boundaries((6, 1000), X_test, Y_test, X_train, Y_train)
+    # Ques 5:
+    plotting_decision_boundaries((10, 50), X_test, Y_test, X_train, Y_train)
+
+    # Ques 6:
+    plotting_decision_boundaries((6, 1000), X_test, Y_test, X_train, Y_train)
 
     # Ques 7:
     random_forest(X_train, Y_train, X_test, Y_test)
 
-    plt.show()
+    # Ques 8:
+    train_XGBoost(X_train,  Y_train, X_test, Y_test)
 
 
 if __name__ == "__main__":
